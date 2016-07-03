@@ -1,0 +1,114 @@
+---
+title: "Financial Computation"
+author: "wwj"
+date: "2016Äê7ÔÂ3ÈÕ"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+#Dear Diary
+Today I learned something about analyzing financial data using R. I will learn how to build probability models for assets returns, the way I should apply statistical techniques to evaluate if asset returns are normally distributed, methods to evaluate statistical models, and portfolio optimization techniques.
+## load data
+First analyze the monthly stock returns of Starbucks. I should download the monthly retrun data from http://assets.datacamp.com/course/compfin/sbuxPrices.csv and read it into R
+```{r}
+data_url <- "http://assets.datacamp.com/course/compfin/sbuxPrices.csv" #get data from URL
+```
+```{r}
+sbux_df <- read.csv(file = data_url, header = TRUE, stringsAsFactors = FALSE) #read data into dataframe
+```
+before analyze return data, it is a good idea to have a quick look at the data. R has a number of functions that help you do that: the str() function compactly displays the structure of an R object. It is arguably one of the most useful R functions.
+```{r}
+str(sbux_df) # check the structure of sbux_df data
+```
+the head() and tail() functions shows you the first and the last part of an R object, respectively.
+```{r}
+head(sbux_df)
+tail(sbux_df)
+```
+ the class() function shows you the class of an R object
+```{r}
+class(sbux_df)
+```
+It will often be useful to select stock data between certain dates. Advanced users are advised to look at the xts.package. The which() function returns the indices(row number in the dataframe) for which a condition is TRUE. 
+```{r} 
+#find the prices between 3/1/1994 and 3/1/1995
+#use which() to mark the row number 
+index_1 <- which(sbux_df$Date == "3/1/1994")
+index_2 <- which(sbux_df$Date == "3/1/1995")
+some_prices <- sbux_df[index_1:index_2, "Adj.Close"]
+```
+when you create a dataframe that has the dates of the stock price as row names, you can select the price on a specific day much more easily. 
+```{r}
+# create a new dataframe contains the price data with the dates as the row names
+sbux_prices_df <- sbux_df[, "Adj.Close", drop= FALSE]
+rownames(sbux_prices_df) <- sbux_df$Date
+head(sbux_prices_df)
+# With Dates as rownames, you can subset directly on the dates.
+# Find indices associated with the dates 3/1/1994 and 3/1/1995.
+price_1 <- sbux_prices_df["3/1/1994", ]
+price_2 <- sbux_prices_df["3/1/1995", ]
+```
+Plot the price data
+R has a powerful graphical capabilities. the Starbucks closing prices are plotted as a function of time. This plot was generated with basic plotting functions. A line plot makes much more sense for price time series data.
+```{r}
+plot(sbux_df$Adj.Close, type="l", lwd=2, ylab="Adjusted close", main="Monthly closing price of SBUX", col="blue")
+```
+Calculate simple returns
+If you denote by $\P_{t}$ the stock price at the end of month $\t$, the simple return is given by:
+$R_{t} = \frac{P_{t}-P{t-1}}{P_{t-1}}$
+the percentage price difference.
+my task is to compute the simple returns for every time point n. The fact that R is vectorized makes that relatively easy. 
+```{r}
+n <- nrow(sbux_prices_df)
+return <- (sbux_prices_df[2:n, 1] -sbux_prices_df[1:(n-1),1])/sbux_prices_df[1:(n-1), 1]
+```
+the vector return now contains the simple returns of Starbucks. It would be convenient to have the dates as names of the elements of that vector. 
+```{r}
+names(return) <- sbux_df$Date[2:n]
+```
+Compute continuously compounded 1-month returns
+The relation between single-period and multi-period returns is multiplicative for single returns. The yearly return is for example the geometric average of the monthly returns.
+Therefore, in practie you will often use continuously compounded returns. These returns have an additive relationship between single and multi-period returns and are defined as:
+$r_{t}=ln(1+R_{t})$
+with $R_{t}$ is the simple return and $r_{t}$ the continously compounded return at moment $t$
+Countinously compounded returns can be computed easily in R by realizing that
+$r_{t}=ln(\frac{P_{t}}{P_{t-1}})$
+$ln(\frac{P_{t}}{P_{t-1}})=ln(P_{t})-ln(P_{t-1})$
+```{r}
+#compute the continously componded returns and assign to sbux_ccret
+sbux_ccret <- log(sbux_prices_df[2:n, 1])-log(sbux_prices_df[1:(n-1),1])
+```
+Compare simple and continously compond returns
+```{r}
+#use cbind() to paste the two vectors that contain both type of #returns next to each other in a matrix
+cbind(return, sbux_ccret)
+```
+Graphically compare the simple and continously componded returns
+```{r}
+plot(return, type="l", col="blue", lwd=2, ylab="Return", main="Compare two returns")
+abline(h=0)
+lines(sbux_ccret, type="l", col="red", lwd=1 )
+```
