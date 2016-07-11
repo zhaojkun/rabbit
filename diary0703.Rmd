@@ -1,7 +1,7 @@
 ---
 title: "Financial Computation"
 author: "wwj"
-date: "2016Äê7ÔÂ3ÈÕ"
+date: "3/7/2016"
 output: html_document
 ---
 
@@ -71,13 +71,13 @@ head(sbux_prices_df)
 price_1 <- sbux_prices_df["3/1/1994", ]
 price_2 <- sbux_prices_df["3/1/1995", ]
 ```
-Plot the price data
+##Plot the price data
 R has a powerful graphical capabilities. the Starbucks closing prices are plotted as a function of time. This plot was generated with basic plotting functions. A line plot makes much more sense for price time series data.
 ```{r}
 plot(sbux_df$Adj.Close, type="l", lwd=2, ylab="Adjusted close", main="Monthly closing price of SBUX", col="blue")
 ```
-Calculate simple returns
-If you denote by $\P_{t}$ the stock price at the end of month $\t$, the simple return is given by:
+##Calculate simple returns
+If you denote by $P_{t}$ the stock price at the end of month $t$, the simple return is given by:
 $R_{t} = \frac{P_{t}-P{t-1}}{P_{t-1}}$
 the percentage price difference.
 my task is to compute the simple returns for every time point n. The fact that R is vectorized makes that relatively easy. 
@@ -89,7 +89,7 @@ the vector return now contains the simple returns of Starbucks. It would be conv
 ```{r}
 names(return) <- sbux_df$Date[2:n]
 ```
-Compute continuously compounded 1-month returns
+##Compute continuously compounded 1-month returns
 The relation between single-period and multi-period returns is multiplicative for single returns. The yearly return is for example the geometric average of the monthly returns.
 Therefore, in practie you will often use continuously compounded returns. These returns have an additive relationship between single and multi-period returns and are defined as:
 $r_{t}=ln(1+R_{t})$
@@ -101,14 +101,41 @@ $ln(\frac{P_{t}}{P_{t-1}})=ln(P_{t})-ln(P_{t-1})$
 #compute the continously componded returns and assign to sbux_ccret
 sbux_ccret <- log(sbux_prices_df[2:n, 1])-log(sbux_prices_df[1:(n-1),1])
 ```
-Compare simple and continously compond returns
+##Compare simple and continously compond returns
 ```{r}
 #use cbind() to paste the two vectors that contain both type of #returns next to each other in a matrix
 cbind(return, sbux_ccret)
 ```
-Graphically compare the simple and continously componded returns
+##Graphically compare the simple and continously componded returns
 ```{r}
 plot(return, type="l", col="blue", lwd=2, ylab="Return", main="Compare two returns")
 abline(h=0)
 lines(sbux_ccret, type="l", col="red", lwd=1 )
+```
+##Determine the value-at-risk of simple monthly returns
+Consider again the Microsoft stock. Assume that the simple monthly return $R$ is normally distributed with a mean 0.04 and variance 0.09^2. The initial wealth to be invested over the month is $100000.
+Determine the 1% and the 5% value-at-risk(VaR) over the month on the investment. That is, determine the loss in investment value that may occur over the next month with a 1% probability and with a 5% probability. 
+```{r}
+# R ~ N(0.04, (0.09)^2) 
+mu_R <- 0.04
+sigma_R <- 0.09
+# Initial wealth W0 equals $100,000
+W0 <- 100000
+# 1% value-at-risk
+W0 * qnorm(0.01, mean = mu_R, sd = sigma_R)
+# 5% value-at-risk
+W0 * qnorm(0.05, mean = mu_R, sd = sigma_R)
+```
+##Determine the value-at-risk of continously compounded monthly returns
+Use the fact that the continously compounded teturn quantile can be transformed to a simple return quantile with the transformation $R=e^{r}-1$. The exponential $e^{r}$ can easily be computed with exp(r).
+```{r}
+# r ~ N(0.04, (0.09)^2) 
+mu_r <- 0.04
+sigma_r <- 0.09
+# Initial wealth W0 equals $100,000
+W0 <- 100000
+# The 1% value-at-risk
+W0 * (exp(qnorm(0.01, mean = mu_r, sd = sigma_r)) - 1)
+# The 5% value-at-risk
+W0 * (exp(qnorm(0.05, mean = mu_r, sd = sigma_r)) - 1)
 ```
